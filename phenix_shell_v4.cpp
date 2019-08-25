@@ -16,7 +16,7 @@
 #define READ 0
 
 using namespace std;
-//map<string,string> mp;
+map<string,string> mp;
 void mybash()
 {   char buf[1024];
    uid_t uid=getuid();
@@ -27,9 +27,13 @@ void mybash()
    string home=mypwdstr->pw_dir;
    if(gethostname(buf,sizeof(buf))<0)
       perror("hostname access permission denied");
+      string path=getenv("PATH");
+     char pa[1024];
+     strcpy(pa,path.c_str());
   fprintf(fd,"%s\n",mypwdstr->pw_name);
   fprintf(fd,"%s\n",mypwdstr->pw_dir);
   fprintf(fd,"%s\n",buf);
+  fprintf(fd,"%s\n",pa);
    fclose(fd);
    cout<<user<<"@"<<buf<<":~$";
 }
@@ -55,7 +59,7 @@ void show_history()
 int exe_pr(char *in)
 {  char dir[]="cd";
    char hstry[]="history";
-   
+   char 
    char *arg[1024];
    char*arg_p=in;
    char* cmd=strtok(arg_p," ");
@@ -132,16 +136,23 @@ void add_hstry(string str)
     //write(fd,&c,sizeof(c));
     fclose(fd);
 }
+void temp(int flag,char* second)
+{
+ 
+    int fd;
+    if(flag==1)
+    fd=open(second,O_CREAT|O_WRONLY|O_TRUNC,0777);
+    else
+    fd=open(second,O_CREAT|O_WRONLY|O_APPEND,0777);
+     dup2(fd,1);
+     close(fd);
+}
 ///// execute redirection
 void exe_ind(char* first,char* second,int flag)
-{   int fd;
-    if(flag==1)
-    fd=open(second,O_CREAT|O_WRONLY|O_TRUNC,0600);
-    else
-    fd=open(second,O_CREAT|O_WRONLY|O_APPEND,0600);
-    dup2(fd,1);
-    //close(fd);
-    /*char *fs_in[1024];   
+{   char cpy[1024];
+    char *cpy_d=cpy;
+    strcpy(cpy_d,cpy);
+    char *fs_in[1024];   
     char* cmd=strtok(first,"|");
     fs_in[0]=cmd;
       int i=0;
@@ -150,7 +161,7 @@ void exe_ind(char* first,char* second,int flag)
         cmd=strtok(NULL, "|");  
         fs_in[++i]=cmd;
       }
-      fs_in[++i]=NULL;*/
+      fs_in[++i]=NULL;
       pid_t pid=fork();
       if(pid<0)
          { 
@@ -158,24 +169,40 @@ void exe_ind(char* first,char* second,int flag)
          }
       else if(pid==0)
            {  
-               
-               //if(!strstr(first,"|"))
-                  // {  
-                      //exe_pr(fs_in[0]);
-                      exe_pr(first);
-                   //}
-               /*else 
+               temp(flag,second);
+               if(!strstr(cpy,"|"))
+                   {  
+                      exe_pr(fs_in[0]);
+                      //exe_pr(first);
+                   }
+               else 
                   {
                    //cout << "Entering pipe \n" ;
-                    pipe_handle(fs_in,i-1);
-                  }*/
+                   pipe_handle(fs_in,i-1);
+                      /*pid_t pid1=fork();
+                      if(pid1<0)
+                        { 
+                           perror("fork(): error");
+                        }
+                     else if(pid1==0)
+                       {    
+                            pipe_handle(fs_in,i-1);
+                        }
+                    
+                      else
+                     {
+                       wait(NULL);
+             
+                      }*/
+                    
+                  }
            }
       else
           {
              wait(NULL);
              
           }
-    close(fd);
+    //close(fd);
 }
 bool ind(char* inp)
 {   int flag=0;
@@ -192,6 +219,7 @@ bool ind(char* inp)
         arg[++i]=cmd;
       }
         arg[++i]=NULL;
+        //cout<<arg[0];
         exe_ind(arg[0],arg[1],flag);
         return true;
    }
@@ -213,6 +241,57 @@ bool ind(char* inp)
    }
    return false;
 }
+void insert_m(char*inp)
+{    char *arg[1024];
+    char* cmd=strtok(inp,"=");
+    arg[0]=cmd;
+     int i=0;
+         while(cmd!= NULL)
+         {  
+           cmd=strtok(NULL, "=");  
+            arg[++i]=cmd;
+           }
+            arg[++i]=NULL;
+            string s1(arg[0]);
+            string s2(arg[1]);
+            mp[s1]=s2;
+            //cout<<mp[s1];
+}
+int add_alias(char* inp)
+{   char alsi[]="alias";
+   char *arg[1024];
+   char inp_cp[1024];
+   char * in=inp_cp;
+   strcpy(in,inp);
+   char*arg_p=in;
+   char* cmd=strtok(arg_p," ");
+   arg[0]=cmd;
+   if(strcmp(arg[0],alsi)==0)
+      {
+          for(int i=0;;i++)
+          { 
+              if(inp[i]==' ')
+              {
+                  inp[i]='%';
+                  break;
+              }
+          }
+           int i=0;
+           char *arg1[1024];
+           char* cmd1=strtok(inp,"%");
+           arg1[0]=cmd1;
+         while(cmd1!= NULL)
+         {  
+           cmd1=strtok(NULL, "%");  
+            arg1[++i]=cmd1;
+           }
+            arg1[++i]=NULL;
+            insert_m(arg1[1]);
+            //cout<<arg1[1];
+            return 1;
+       }
+   return 0;
+}
 //// shell driver program
 int main()
 {   char ex[]="exit";
@@ -228,15 +307,15 @@ while(1)
   char in[1024],in_d[1024];
   char *p=in;
   char *p1=in_d;
- /* if(mp.find(str))
+  if(mp.find(str)!=mp.end())
       { string temp=mp[str];
         strcpy(in,temp.c_str());
         strcpy(in_d,temp.c_str());
       }
-   else{*/
+   else{
   strcpy(in,str.c_str());
   strcpy(in_d,in);
-  //}
+  }
   char *fs_in[1024];   
   char* cmd=strtok(p,"|");
   if(strcmp(cmd,ex)==0)
@@ -244,15 +323,16 @@ while(1)
   if(strcmp(cmd,clr)==0)
        clear();   
   fs_in[0]=cmd;
-  if(!ind(fs_in[0]))
-   { //cout<<fs_in[0];
-      int i=0;
+  int i=0;
       while(cmd!= NULL)
       {  
         cmd=strtok(NULL, "|");  
         fs_in[++i]=cmd;
       }
       fs_in[++i]=NULL;
+  if(!ind(in_d) && !add_alias(in_d))
+   { //cout<<fs_in[0];
+      
   
       pid_t pid=fork();
       if(pid<0)
@@ -268,7 +348,8 @@ while(1)
                    }
                else 
                   {
-                   //cout << "Entering pipe \n" ;
+                  // cout << "Entering pipe \n" ;
+                  // cout<<fs_in[0]<<" "<<fs_in[1]<<" "<<i;
                     pipe_handle(fs_in,i-1);
                   }
            }
@@ -277,8 +358,9 @@ while(1)
              wait(NULL);
              
           }
+     }
           //break;
     }
- }
+ 
     return 0;
 }
