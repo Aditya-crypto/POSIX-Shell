@@ -9,6 +9,8 @@
 #include<sys/types.h>
 #include<sys/wait.h>
 #include<fcntl.h>
+#define STD_INP 0
+#define STD_OUT 1
 using namespace std;
 int gflag=0;
 char* get_p(char *in,char *fs)
@@ -48,9 +50,11 @@ void get_arg(char *in)
     char *p=get_p(tt_temp,fs);//p and fs are storing process path
     char * argp[100];
     char**t_arg=argp;
-    t_arg=get_p_arg(t_o,argp);  
-    //cout<<p<<" "<<argp[0]<<" "<<argp[1]<<" t_o is "<<t_o<<"\n";                     
-    execvp(fs,argp);
+    t_arg=get_p_arg(t_o,argp);                      
+   if(execvp(fs,argp)<0)
+    {   perror("wrong command");
+        exit(1);
+    }
   }
 void take_input(char* inp)
 {
@@ -75,23 +79,28 @@ void take_input(char* inp)
 void pipe_handle(char**inp,int* pipeend,int i)
   {
          int f=0;
-         
+         while(1)
+       {
+           int pi=fork();
+          if(pi<0)
+            perror("fork(): error");
+          else if(pi==0)
+          {
+            
+          }
+       }
   }
 int main()
 {
           int pipeend1[2];
           pipe(pipeend1);
-          pid_t pid=fork();
+          
           char *ex="exit";
-            if(pid<0)
-            { 
-               perror("fork(): error");
-            }
+            
          
-           else if(pid==0)
-           {
-              while(1)
-            { 
+          
+        while(1)
+           { 
               char in[1024],p_c_[1024];
               char* p=in;
               char* p_c=p_c_;
@@ -110,19 +119,30 @@ int main()
               }
               fs_in[++i]=NULL;
                //cout<<i<<endl;
-              if(gflag==0)
-              get_arg(p_c_);
-              else 
+              pid_t pid=fork();
+              if(pid<0)
+               { 
+                  perror("fork(): error");
+               }
+              else if(pid==0)
               {
-              pipe_handle(fs_in,pipeend1,i-1);
+                  if(gflag==0)
+                    get_arg(p_c_);
+                  else 
+                  {
+                    pipe_handle(fs_in,pipeend1,i-1);
+                  }
               }
-            }
-  
-           }
-            else{
-             wait(NULL);
+              else
+              {
+                wait(NULL);
              
-            }
+              }
+
+          }
+  
+         
+            
    
    
 
