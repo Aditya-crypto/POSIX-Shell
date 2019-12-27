@@ -35,7 +35,7 @@ void mybash()
   fprintf(fd,"%s\n",buf);
   fprintf(fd,"%s\n",pa);
    fclose(fd);
-   cout<<user<<"@"<<buf<<":~$";
+   cout<<user<<"@"<<buf<<":~$"; 
 }
 //// read history.txt file
 void show_history()
