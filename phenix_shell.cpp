@@ -1,34 +1,87 @@
-#include<stdio.h>
 
-#include<cstring>
-
-#include<string.h>
-
-#include<stack>
-
-#include<sys/wait.h>
-
-#include<iostream>
-
-#include<stdlib.h>
-
-#include<unistd.h>
-
-#include<sys/types.h>
-
-#include<pwd.h>
-
-#include<fcntl.h>
-
-#include<map>
-
-#include<sys/stat.h>
-
-#
-define clear() printf("\033[H\033[J")# define WRITE 1# define READ 0
+#include <string.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <sys/types.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include<sstream>
+#include <sys/wait.h>
+#include<unordered_map>
+#include <dirent.h>
+#include <stdlib.h>
+#include <termios.h>
+#include <ctype.h>
+#include <stdio.h>
+#include <errno.h>
+#include <iostream>
+#include <string>
+#include <fstream>
+#include<vector>
+#define clear() printf("\033[H\033[J")# define WRITE 1# define READ 0
 
 using namespace std;
 map < string, string > mp;
+//////////////////////////////////////////////////////////////////////////////////////////////////////////Trie Datastructure
+class Trie {
+  public:
+      unordered_map<char,Trie*> map = {};
+      bool isleaf = false;
+
+  public:
+
+      Trie(){}   
+      void insert(string word) {
+          Trie* node = this;
+          
+          for(char ch : word){  
+              if(node->map.find(ch) == node->map.end()){
+                  node->map[ch] = new Trie();
+              }
+              node=node->map[ch];
+          }
+          node->isleaf = true;
+      }
+      
+      bool search(string word) {
+          Trie* node= this;
+          for(char ch:word){
+             if(!node->map.count(ch)) return false;
+              node=node->map[ch];
+          }
+          return node->isleaf;
+      }
+
+      
+  };
+
+   void printsuggestion(Trie *node,string word,vector<string> &ss){
+    if(node == NULL) return;
+    if(node->isleaf) ss.push_back(word);
+    for(auto i = node->map.begin();i!=node->map.end();i++) {printsuggestion(i->second , word + (i->first),ss);}
+
+   }
+
+   vector<string> printstring(Trie *node , string word){
+        vector<string> ss;
+        int len = word.length();
+        for(int i=0;i<len;i++)
+        {
+          if(node->map.find(word[i]) == node->map.end()) return {};
+          node = node->map[word[i]];
+           }
+        if(node->isleaf && (node->map.size()==0)){
+          ss.push_back(word); return ss;}
+
+          if(node->map.size() != 0){
+            printsuggestion(node,word,ss);
+          }
+
+          return ss;
+      }
+/////////////////////////////////////////////////////////////////////////////////////////////////////// MYBASHRC.txt File
 void mybash() {
   char buf[1024];
   uid_t uid = getuid();
@@ -49,23 +102,21 @@ void mybash() {
   fclose(fd);
   cout << user << "@" << buf << ":~$";
 }
-//// read history.txt file
+////////////////////////////////////////////////////////////////////////////////////////////////// read history.txt file
 void show_history() {
   char buf[1024];
 
   FILE * fd;
   char final_path[] = "/home/phenix-fire/Documents/OS_Shell/hstry.txt";
   fd = fopen(final_path, "r");
-  //fd=open(final_path,O_CREAT | O_WRONLY,0600);
   while (!feof(fd)) {
 
     fread(buf, sizeof(buf), 1, fd);
     printf("%s", buf);
   }
-  //write(fd,&c,sizeof(c));
   fclose(fd);
 }
-///// execute commands
+///////////////////////////////////////////////////////////////////////////////////////////////// execute commands
 int exe_pr(char * in ) {
   char dir[] = "cd";
   char hstry[] = "history";
@@ -95,8 +146,8 @@ int exe_pr(char * in ) {
     exit(1);
   }
 }
-/////// handling with pipes
-void pipe_handle(char ** inp, int i) { //cout<<"hello";
+///////////////////////////////////////////////////////////////////////////////////////////// handling with pipes
+void pipe_handle(char ** inp, int i) {
   int pipe1[2];
   pid_t pi;
   int k = 0;
@@ -117,14 +168,12 @@ void pipe_handle(char ** inp, int i) { //cout<<"hello";
     } else {
       wait(NULL);
       ii++;
-      //close(pipe1[READ]);
       close(pipe1[WRITE]);
       f = pipe1[READ];
-      //close(pipe1[READ]);
     }
   }
 }
-//// add history
+///////////////////////////////////////////////////////////////////////////////////////////////////////// add history
 void add_hstry(string str) {
   char buf[1024];
   strcpy(buf, str.c_str());
@@ -148,7 +197,7 @@ void temp(int flag, char * second) {
   dup2(fd, 1);
   close(fd);
 }
-///// execute redirection
+////////////////////////////////////////////////////////////////////////////////////////////////////// execute redirection
 void exe_ind(char * first, char * second, int flag) {
   char cpy[1024];
   char * cpy_d = cpy;
@@ -169,32 +218,13 @@ void exe_ind(char * first, char * second, int flag) {
     temp(flag, second);
     if (!strstr(cpy, "|")) {
       exe_pr(fs_in[0]);
-      //exe_pr(first);
     } else {
-      //cout << "Entering pipe \n" ;
       pipe_handle(fs_in, i - 1);
-      /*pid_t pid1=fork();
-                      if(pid1<0)
-                        { 
-                           perror("fork(): error");
-                        }
-                     else if(pid1==0)
-                       {    
-                            pipe_handle(fs_in,i-1);
-                        }
-                    
-                      else
-                     {
-                       wait(NULL);
-             
-                      }*/
-
     }
   } else {
     wait(NULL);
 
   }
-  //close(fd);
 }
 bool ind(char * inp) {
   int flag = 0;
@@ -245,6 +275,7 @@ void insert_m(char * inp) {
   mp[s1] = s2;
   //cout<<mp[s1];
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////adding aliases
 int add_alias(char * inp) {
   char alsi[] = "alias";
   char * arg[1024];
@@ -276,7 +307,7 @@ int add_alias(char * inp) {
   }
   return 0;
 }
-//// shell driver program
+///////////////////////////////////////////////////////////////////////////////////////////////////// shell driver program
 int main() {
   char ex[] = "exit";
   char clr[] = "clear";
